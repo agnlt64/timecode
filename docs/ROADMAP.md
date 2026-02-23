@@ -3,7 +3,7 @@
 ## V1 (Current)
 
 - VS Code extension tracking on one machine
-- Local Bun API + dashboard
+- Local Node.js API + dashboard
 - SQLite storage
 - PNG export for custom period
 

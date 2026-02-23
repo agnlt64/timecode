@@ -4,16 +4,17 @@
 
 V1 stack:
 - VS Code extension: TypeScript
-- Local backend/API: Bun + TypeScript
+- Local backend/API: Node.js + TypeScript
 - Storage: SQLite
-- Dashboard: React + TypeScript (served by Bun)
+- Dashboard: local web UI served by Node.js API server
 - Charting: lightweight JS chart library
-- Image export: server-side rendering in Bun with `satori` + `resvg` (or `@napi-rs/canvas` fallback)
+- API client: `axios`
+- Image export: server-side PNG generation in Node.js (for example `satori` + `resvg-js` or `@napi-rs/canvas`)
 
 Reasoning:
 - Single language across extension + backend + frontend improves velocity.
 - SQLite provides reliable local persistence and fast aggregation.
-- Bun is enough for local API speed and keeps the stack simple.
+- Node.js + npm aligns with official VS Code extension guidance and keeps tooling predictable.
 
 ## 2. High-Level Components
 
@@ -35,9 +36,9 @@ Reasoning:
 ## 3. Runtime Topology (Single Machine)
 
 - Extension runs inside VS Code process.
-- Bun server runs as local process (default `127.0.0.1:4821`).
+- Node.js server runs as local process (default `127.0.0.1:4821`).
 - DB file at `~/.config/timecode/timecode.db`.
-- Dashboard served from Bun at `http://127.0.0.1:4821`.
+- Dashboard served from local server at `http://127.0.0.1:4821`.
 
 ## 4. Data Flow
 

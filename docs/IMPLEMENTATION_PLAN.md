@@ -3,7 +3,7 @@
 ## Milestone 1: Foundations
 
 Deliverables:
-- Monorepo scaffold (`apps/extension`, `apps/server`, `packages/shared`)
+- Simplified repo scaffold (`server`, `shared`, `extension`)
 - Shared type definitions for event payloads and stats responses
 - SQLite initialization + migrations (schema version 1)
 - Health endpoint

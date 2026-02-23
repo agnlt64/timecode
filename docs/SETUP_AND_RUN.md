@@ -1,21 +1,19 @@
 # Setup and Runbook (V1)
 
-## 1. Monorepo Layout (Recommended)
+## 1. Project Layout (Simplified)
 
 ```text
 timecode/
-  apps/
-    extension/      # VS Code extension (TypeScript)
-    server/         # Bun API + dashboard
-  packages/
-    shared/         # shared types and utils
+  server/           # local API + dashboard
+  shared/           # shared types and contracts
+  extension/        # VS Code extension (to be added/expanded)
   docs/
 ```
 
 ## 2. Prerequisites
 
 - Node.js LTS
-- Bun (latest stable)
+- npm
 - VS Code
 - SQLite (CLI optional for debugging)
 
@@ -28,10 +26,11 @@ Server:
 
 ## 4. Local Dev Workflow
 
-1. Start API/dashboard server.
-2. Launch VS Code extension in Extension Development Host.
-3. Open dashboard in browser.
-4. Edit files in dev host and verify metrics update.
+1. Install dependencies with `npm install`.
+2. Start API/dashboard server.
+3. Launch VS Code extension in Extension Development Host.
+4. Open dashboard in browser.
+5. Edit files in dev host and verify metrics update.
 
 ## 5. Production-Like Local Run
 
