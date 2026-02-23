@@ -41,6 +41,7 @@ Suggested settings:
   "id": "sha256(...)",
   "machineId": "b36f...",
   "editor": "vscode",
+  "os": "darwin",
   "projectName": "timecode",
   "projectPath": "/Users/antonin/dev/timecode",
   "filePath": "/Users/antonin/dev/timecode/src/index.ts",

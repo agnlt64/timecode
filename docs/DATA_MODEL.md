@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS events (
   id TEXT PRIMARY KEY,                -- deterministic hash for idempotency
   machine_id TEXT NOT NULL,           -- stable local machine identifier
   editor TEXT NOT NULL,               -- "vscode"
-  os TEXT NOT NULL
+  os TEXT NOT NULL,
   project_name TEXT NOT NULL,
   project_path TEXT,                  -- optional, privacy configurable
   file_path TEXT,                     -- optional, privacy configurable
