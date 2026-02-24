@@ -4,46 +4,73 @@ import {
   TrendLineChart,
   WeekdayBarChart
 } from "~/components/charts";
-import { RangePicker, useDashboardData } from "~/components/dashboard-shell";
+import {
+  LoadingSkeleton,
+  RangePicker,
+  StatCard,
+  useDashboardData
+} from "~/components/dashboard-shell";
 
 export default function OverviewRoute() {
-  const { range, setRange, stats, loading, error, totalLabel, activeDays, rangeLabel } = useDashboardData();
+  const {
+    range,
+    setRange,
+    stats,
+    loading,
+    error,
+    totalLabel,
+    activeDays,
+    totalDays,
+    dailyAverageLabel,
+    bestDayLabel,
+    bestDayDate
+  } = useDashboardData();
 
   return (
-    <div className="space-y-4">
-      <header className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-        <h2 className="text-2xl font-semibold">Overview</h2>
-        <p className="mt-1 text-sm text-slate-400">Default interval: 1 week.</p>
-        <div className="mt-4">
-          <RangePicker range={range} onChange={setRange} />
-        </div>
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
-            <p className="text-xs text-slate-400">Total coded</p>
-            <p className="text-xl font-semibold">{totalLabel}</p>
-          </div>
-          <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3">
-            <p className="text-xs text-slate-400">Active days</p>
-            <p className="text-xl font-semibold">{activeDays}</p>
-          </div>
-          <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3 col-span-2">
-            <p className="text-xs text-slate-400">Range</p>
-            <p className="font-mono text-sm text-slate-300">{rangeLabel}</p>
-          </div>
-        </div>
-      </header>
+    <div className="space-y-5">
+      {/* Range picker */}
+      <RangePicker range={range} onChange={setRange} />
 
-      {loading ? <p className="text-slate-400">Loading dashboard...</p> : null}
-      {error ? <p className="text-red-300">{error}</p> : null}
+      {/* Loading */}
+      {loading ? <LoadingSkeleton /> : null}
 
-      {stats ? (
+      {/* Error */}
+      {error ? (
+        <div className="rounded-xl bg-surface border border-red-900/40 p-4 text-red-400 text-sm">
+          {error}
+        </div>
+      ) : null}
+
+      {stats && !loading ? (
         <>
-          <ProjectStackedChart items={stats.projectDaily} />
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-in">
+            <StatCard label="Total coded" value={totalLabel} />
+            <StatCard
+              label="Active days"
+              value={String(activeDays)}
+              detail={`out of ${totalDays}`}
+            />
+            <StatCard label="Daily average" value={dailyAverageLabel} />
+            <StatCard
+              label="Best day"
+              value={bestDayLabel}
+              detail={bestDayDate ? bestDayDate.slice(5) : undefined}
+              accent="amber"
+            />
+          </div>
+
+          {/* Trend chart */}
+          <TrendLineChart items={stats.dailyTotals} />
+
+          {/* Projects + Languages side by side */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            <WeekdayBarChart items={stats.weekday} />
+            <ProjectStackedChart items={stats.projectDaily} />
             <LanguageDonut items={stats.languages} />
           </div>
-          <TrendLineChart items={stats.dailyTotals} />
+
+          {/* Weekday chart */}
+          <WeekdayBarChart items={stats.weekday} />
         </>
       ) : null}
     </div>

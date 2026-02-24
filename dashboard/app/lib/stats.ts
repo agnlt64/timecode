@@ -27,6 +27,20 @@ export function defaultWeekRange(): DateRange {
   return { from: toDateOnly(fromDate), to: toDateOnly(toDate) };
 }
 
+export function last14DaysRange(): DateRange {
+  const toDate = new Date();
+  const fromDate = new Date();
+  fromDate.setDate(toDate.getDate() - 13);
+  return { from: toDateOnly(fromDate), to: toDateOnly(toDate) };
+}
+
+export function last30DaysRange(): DateRange {
+  const toDate = new Date();
+  const fromDate = new Date();
+  fromDate.setDate(toDate.getDate() - 29);
+  return { from: toDateOnly(fromDate), to: toDateOnly(toDate) };
+}
+
 function apiBase(): string {
   return import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:4821";
 }
@@ -64,9 +78,17 @@ export function formatDuration(seconds: number): string {
   if (h > 0) {
     return `${h}h ${m}m`;
   }
-  return `${m}m`;
+  if (m > 0) {
+    return `${m}m`;
+  }
+  return "0m";
 }
 
 export function rangeLabel(range: DateRange): string {
   return `${range.from} → ${range.to}`;
+}
+
+export function bestDay(dailyTotals: DailyTotalItem[]): DailyTotalItem | null {
+  if (dailyTotals.length === 0) return null;
+  return dailyTotals.reduce((best, item) => (item.seconds > best.seconds ? item : best), dailyTotals[0]);
 }

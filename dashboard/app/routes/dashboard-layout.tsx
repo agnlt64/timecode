@@ -4,26 +4,29 @@ const links = [
   { to: "/", label: "Overview" },
   { to: "/projects", label: "Projects" },
   { to: "/languages", label: "Languages" },
-  { to: "/weekdays", label: "Weekdays" },
-  { to: "/settings", label: "Settings" }
+  { to: "/weekdays", label: "Weekdays" }
 ];
 
 export default function DashboardLayout() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-[1400px] px-4 py-6 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
-        <aside className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 h-fit">
-          <h1 className="text-xl font-semibold">Timecode</h1>
-          <p className="mt-1 text-xs text-slate-400">Local dashboard</p>
-          <nav className="mt-5 space-y-1">
+    <div className="min-h-screen" style={{ background: "#111113" }}>
+      {/* Top nav */}
+      <header className="border-b border-border">
+        <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-semibold tracking-tight">Timecode</span>
+          </div>
+
+          <nav className="flex items-center rounded-lg border border-border bg-surface p-1 gap-0.5">
             {links.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
                 end={link.to === "/"}
                 className={({ isActive }) =>
-                  `block rounded-md px-3 py-2 text-sm transition ${
-                    isActive ? "bg-cyan-400/15 text-cyan-200" : "text-slate-300 hover:bg-slate-800"
+                  `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isActive
+                    ? "bg-accent-dim text-accent"
+                    : "text-muted hover:text-white hover:bg-surface-hover"
                   }`
                 }
               >
@@ -31,12 +34,13 @@ export default function DashboardLayout() {
               </NavLink>
             ))}
           </nav>
-        </aside>
+        </div>
+      </header>
 
-        <main className="space-y-4">
-          <Outlet />
-        </main>
-      </div>
+      {/* Main content */}
+      <main className="mx-auto max-w-5xl px-4 py-6 space-y-5">
+        <Outlet />
+      </main>
     </div>
   );
 }

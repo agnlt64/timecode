@@ -5,16 +5,17 @@ export default function ProjectsRoute() {
   const { range, setRange, stats, loading, error } = useDashboardData();
 
   return (
-    <div className="space-y-4">
-      <header className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-        <h2 className="text-2xl font-semibold">Projects</h2>
-        <div className="mt-4">
-          <RangePicker range={range} onChange={setRange} />
+    <div className="space-y-5">
+      <RangePicker range={range} onChange={setRange} />
+      {loading ? (
+        <div className="animate-pulse rounded-xl bg-surface border border-border h-64" />
+      ) : null}
+      {error ? (
+        <div className="rounded-xl bg-surface border border-red-900/40 p-4 text-red-400 text-sm">
+          {error}
         </div>
-      </header>
-      {loading ? <p className="text-slate-400">Loading...</p> : null}
-      {error ? <p className="text-red-300">{error}</p> : null}
-      {stats ? <ProjectStackedChart items={stats.projectDaily} /> : null}
+      ) : null}
+      {stats && !loading ? <ProjectStackedChart items={stats.projectDaily} /> : null}
     </div>
   );
 }

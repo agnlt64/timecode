@@ -5,7 +5,6 @@ export default [
     index("routes/overview.tsx"),
     route("projects", "routes/projects.tsx"),
     route("languages", "routes/languages.tsx"),
-    route("weekdays", "routes/weekdays.tsx"),
-    route("settings", "routes/settings.tsx")
+    route("weekdays", "routes/weekdays.tsx")
   ])
 ] satisfies RouteConfig;
