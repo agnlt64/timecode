@@ -84,8 +84,20 @@ export function formatDuration(seconds: number): string {
   return "0m";
 }
 
+/** YYYY-MM-DD → dd/mm/yyyy */
+export function formatDate(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+/** YYYY-MM-DD → dd/mm */
+export function formatShortDate(iso: string): string {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+
 export function rangeLabel(range: DateRange): string {
-  return `${range.from} → ${range.to}`;
+  return `${formatDate(range.from)} → ${formatDate(range.to)}`;
 }
 
 export function bestDay(dailyTotals: DailyTotalItem[]): DailyTotalItem | null {

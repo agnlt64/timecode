@@ -10,6 +10,7 @@ import {
   StatCard,
   useDashboardData
 } from "~/components/dashboard-shell";
+import { formatShortDate } from "~/lib/stats";
 
 export default function OverviewRoute() {
   const {
@@ -55,7 +56,7 @@ export default function OverviewRoute() {
             <StatCard
               label="Best day"
               value={bestDayLabel}
-              detail={bestDayDate ? bestDayDate.slice(5) : undefined}
+              detail={bestDayDate ? formatShortDate(bestDayDate) : undefined}
               accent="amber"
             />
           </div>

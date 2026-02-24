@@ -1,4 +1,4 @@
-import { formatDuration } from "~/lib/stats";
+import { formatDuration, formatShortDate } from "~/lib/stats";
 
 type ProjectDailyItem = { day: string; projectName: string; seconds: number };
 type WeekdayItem = { dayOfWeek: number; seconds: number };
@@ -258,7 +258,7 @@ export function TrendLineChart({ items }: { items: DailyTotalItem[] }) {
                 fontSize="10"
                 fontFamily="JetBrains Mono, monospace"
               >
-                {p.day.slice(5)}
+                {formatShortDate(p.day)}
               </text>
             </g>
           ))}
