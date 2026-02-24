@@ -16,10 +16,14 @@ const DB_PATH = process.env.TIMECODE_DB_PATH ?? join(homedir(), ".config", "time
 const VERSION = "0.1.0";
 const SCHEMA_VERSION = 1;
 const MAX_INGEST_EVENTS = 500;
+const MAX_RANGE_DAYS = 366;
 
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.statusCode = status;
   res.setHeader("content-type", "application/json");
+  res.setHeader("access-control-allow-origin", "*");
+  res.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
+  res.setHeader("access-control-allow-headers", "content-type");
   res.end(JSON.stringify(data));
 }
 
@@ -83,6 +87,48 @@ function localDayFromISO(isoUtc: string): string {
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function isDateOnly(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function daysBetweenInclusive(from: string, to: string): number {
+  const start = Date.parse(`${from}T00:00:00.000Z`);
+  const end = Date.parse(`${to}T00:00:00.000Z`);
+  return Math.floor((end - start) / 86_400_000) + 1;
+}
+
+function toDateOnly(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function resolveRange(url: URL): { from: string; to: string } | { error: string; status: number } {
+  const today = new Date();
+  const defaultTo = toDateOnly(today);
+  const start = new Date(today);
+  start.setDate(start.getDate() - 6);
+  const defaultFrom = toDateOnly(start);
+
+  const from = url.searchParams.get("from") ?? defaultFrom;
+  const to = url.searchParams.get("to") ?? defaultTo;
+
+  if (!isDateOnly(from) || !isDateOnly(to)) {
+    return { error: "Invalid date format. Use YYYY-MM-DD.", status: 400 };
+  }
+  if (from > to) {
+    return { error: "`from` must be <= `to`.", status: 400 };
+  }
+
+  const rangeDays = daysBetweenInclusive(from, to);
+  if (rangeDays > MAX_RANGE_DAYS) {
+    return { error: `Date range too large. Max ${MAX_RANGE_DAYS} days.`, status: 400 };
+  }
+
+  return { from, to };
 }
 
 function openDatabase(): DatabaseSync {
@@ -201,6 +247,37 @@ const upsertDailyStatsStmt = db.prepare(`
     updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 `);
 
+const queryProjectDailyStmt = db.prepare(`
+  SELECT day, project_name AS projectName, SUM(total_seconds) AS seconds
+  FROM daily_stats
+  WHERE day BETWEEN ? AND ?
+  GROUP BY day, project_name
+  ORDER BY day ASC, seconds DESC
+`);
+
+const queryWeekdayStmt = db.prepare(`
+  SELECT CAST(strftime('%w', day) AS INTEGER) AS dayOfWeek, SUM(total_seconds) AS seconds
+  FROM daily_stats
+  WHERE day BETWEEN ? AND ?
+  GROUP BY dayOfWeek
+`);
+
+const queryLanguagesStmt = db.prepare(`
+  SELECT language, SUM(total_seconds) AS seconds
+  FROM daily_stats
+  WHERE day BETWEEN ? AND ?
+  GROUP BY language
+  ORDER BY seconds DESC
+`);
+
+const queryDailyTotalsStmt = db.prepare(`
+  SELECT day, SUM(total_seconds) AS seconds
+  FROM daily_stats
+  WHERE day BETWEEN ? AND ?
+  GROUP BY day
+  ORDER BY day ASC
+`);
+
 function ingestEvents(events: TimecodeEvent[]): IngestEventsResponse {
   const result: IngestEventsResponse = {
     accepted: 0,
@@ -252,6 +329,11 @@ const server = createServer(async (req, res) => {
   const method = req.method ?? "GET";
   const url = new URL(req.url ?? "/", `http://${HOST}:${PORT}`);
 
+  if (method === "OPTIONS") {
+    sendJson(res, 204, {});
+    return;
+  }
+
   if (method === "GET" && url.pathname === "/api/v1/health") {
     const response: HealthResponse = {
       status: "ok",
@@ -288,6 +370,54 @@ const server = createServer(async (req, res) => {
     } catch (error) {
       sendJson(res, 500, { error: error instanceof Error ? error.message : "Server error" });
     }
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/api/v1/stats/project-daily") {
+    const range = resolveRange(url);
+    if ("error" in range) {
+      sendJson(res, range.status, { error: range.error });
+      return;
+    }
+
+    const items = queryProjectDailyStmt.all(range.from, range.to);
+    sendJson(res, 200, { from: range.from, to: range.to, items });
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/api/v1/stats/weekday") {
+    const range = resolveRange(url);
+    if ("error" in range) {
+      sendJson(res, range.status, { error: range.error });
+      return;
+    }
+
+    const items = queryWeekdayStmt.all(range.from, range.to);
+    sendJson(res, 200, { from: range.from, to: range.to, items });
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/api/v1/stats/languages") {
+    const range = resolveRange(url);
+    if ("error" in range) {
+      sendJson(res, range.status, { error: range.error });
+      return;
+    }
+
+    const items = queryLanguagesStmt.all(range.from, range.to);
+    sendJson(res, 200, { from: range.from, to: range.to, items });
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/api/v1/stats/daily-totals") {
+    const range = resolveRange(url);
+    if ("error" in range) {
+      sendJson(res, range.status, { error: range.error });
+      return;
+    }
+
+    const items = queryDailyTotalsStmt.all(range.from, range.to);
+    sendJson(res, 200, { from: range.from, to: range.to, items });
     return;
   }
 

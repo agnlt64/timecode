@@ -7,7 +7,9 @@
     "doc": "docs"
   },
   "scripts": {
-    "api": "node --experimental-strip-types server/index.ts",
+    "api": "node --experimental-strip-types api/index.ts",
+    "dashboard": "npm --prefix dashboard run dev",
+    "dashboard:typecheck": "npm --prefix dashboard run typecheck",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
