@@ -7,13 +7,13 @@
     "doc": "docs"
   },
   "scripts": {
-    "server": "npx tsx server/index.ts",
+    "server": "node --experimental-strip-types server/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "devDependencies": {
     "@types/node": "^25.3.0",
     "tsx": "^4.20.6"

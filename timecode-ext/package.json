@@ -1,7 +1,7 @@
 {
   "name": "timecode-ext",
-  "displayName": "timecode-ext",
-  "description": "timecode vscode extension",
+  "displayName": "Timecode",
+  "description": "Local-first coding activity tracker for VS Code",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.109.0"
@@ -9,15 +9,62 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "timecode-ext.helloWorld",
-        "title": "Hello World"
+        "command": "timecode.openDashboard",
+        "title": "Timecode: Open Dashboard"
+      },
+      {
+        "command": "timecode.showTrackingStatus",
+        "title": "Timecode: Show Tracking Status"
+      },
+      {
+        "command": "timecode.restartConnection",
+        "title": "Timecode: Restart Connection"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Timecode",
+      "properties": {
+        "timecode.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable Timecode activity tracking."
+        },
+        "timecode.apiBaseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:4821",
+          "description": "Base URL of the local Timecode API server."
+        },
+        "timecode.heartbeatSeconds": {
+          "type": "number",
+          "default": 30,
+          "minimum": 5,
+          "description": "Heartbeat interval in seconds while active."
+        },
+        "timecode.includeFilePaths": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include absolute file paths in event payloads."
+        },
+        "timecode.includeProjectPaths": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include project root paths in event payloads."
+        },
+        "timecode.idleThresholdSeconds": {
+          "type": "number",
+          "default": 120,
+          "minimum": 30,
+          "description": "Stop tracking when no activity is detected for this many seconds."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
