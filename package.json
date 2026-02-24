@@ -1,0 +1,24 @@
+{
+  "name": "timecode",
+  "version": "1.0.0",
+  "description": "Timecode is a free, open-source, self-hosted coding activity tracker.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "server": "npx tsx server/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "tsx": "^4.20.6"
+  },
+  "dependencies": {
+    "axios": "^1.13.5"
+  }
+}

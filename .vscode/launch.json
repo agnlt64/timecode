@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Timecode Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/timecode-ext"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/timecode-ext/out/**/*.js"
+      ],
+      "preLaunchTask": "timecode-ext: compile"
+    }
+  ]
+}
