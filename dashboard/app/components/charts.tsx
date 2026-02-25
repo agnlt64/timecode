@@ -94,14 +94,14 @@ export function WeekdayBarChart({ items }: { items: WeekdayItem[] }) {
     <section className="rounded-xl bg-surface border border-border p-5 animate-in">
       <h3 className="text-base font-semibold">Weekday Pattern</h3>
       <p className="mt-1 text-xs text-muted">Average coding time per day of the week</p>
-      <div className="mt-4 flex gap-2 items-end h-44">
+      <div className="mt-4 flex gap-2 items-end">
         {order.map((weekday, idx) => {
           const seconds = values[idx] ?? 0;
-          const h = (seconds / max) * 140;
+          const h = (seconds / max) * 120;
           const isToday = weekday === today;
           return (
-            <div key={weekday} className="flex-1 flex flex-col items-center gap-1">
-              <span className="text-[10px] text-muted font-mono">
+            <div key={weekday} className="flex-1 flex flex-col items-center">
+              <span className="text-[10px] text-muted font-mono h-4 mb-1">
                 {seconds > 0 ? formatDuration(seconds) : ""}
               </span>
               <div className="w-full flex items-end justify-center h-32">
@@ -114,7 +114,7 @@ export function WeekdayBarChart({ items }: { items: WeekdayItem[] }) {
                   title={`${labels[weekday]}: ${formatDuration(seconds)}`}
                 />
               </div>
-              <span className={`text-xs ${isToday ? "text-accent font-medium" : "text-muted"}`}>
+              <span className={`mt-1.5 text-xs ${isToday ? "text-accent font-medium" : "text-muted"}`}>
                 {labels[weekday]}
               </span>
             </div>
