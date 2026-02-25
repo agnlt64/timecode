@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
-import { basename } from "node:path";
-import { platform } from "node:os";
+import { mkdirSync } from "node:fs";
+import { homedir, platform } from "node:os";
+import { basename, dirname, join } from "node:path";
 import * as vscode from "vscode";
 
 type EditorName = "vscode";
@@ -20,19 +21,10 @@ interface TimecodeEvent {
   isWrite: boolean;
 }
 
-interface IngestEventsRequest {
-  events: TimecodeEvent[];
-}
-
-interface IngestEventsResponse {
-  accepted: number;
-  duplicates: number;
-  rejected: number;
-}
-
 interface TrackingConfig {
   enabled: boolean;
-  apiBaseUrl: string;
+  dashboardUrl: string;
+  dbPath: string;
   heartbeatSeconds: number;
   includeFilePaths: boolean;
   includeProjectPaths: boolean;
@@ -46,21 +38,206 @@ interface TrackingContext {
   language: string;
 }
 
-const QUEUE_STATE_KEY = "timecode.pendingEvents";
+type SqliteRunResult = { changes?: number };
+type SqliteStatement = {
+  run: (params?: Record<string, unknown> | unknown[] | unknown) => SqliteRunResult;
+  get: (params?: Record<string, unknown> | unknown[] | unknown) => Record<string, unknown> | undefined;
+};
+type SqliteDatabase = {
+  exec: (sql: string) => void;
+  prepare: (sql: string) => SqliteStatement;
+  close: () => void;
+};
+
+type DatabaseSyncCtor = new (path: string) => SqliteDatabase;
+
 const MACHINE_ID_KEY = "timecode.machineId";
-const DAILY_TOTAL_KEY = "timecode.dailyTotal";
-const MAX_BATCH_SIZE = 500;
-const INITIAL_RETRY_MS = 1_000;
-const MAX_RETRY_MS = 30_000;
 
 let tracker: TimecodeTracker | undefined;
+
+class LocalStore {
+  private db: SqliteDatabase | null = null;
+  private dbPath = "";
+
+  private insertEventStmt: SqliteStatement | null = null;
+  private upsertDailyStmt: SqliteStatement | null = null;
+  private queryTodayStmt: SqliteStatement | null = null;
+
+  public open(requestedPath: string): string {
+    this.close();
+
+    const resolvedPath = requestedPath.length > 0 ? requestedPath : join(homedir(), ".config", "timecode", "timecode.db");
+    mkdirSync(dirname(resolvedPath), { recursive: true });
+
+    const dbCtor = this.loadDatabaseSync();
+    const db = new dbCtor(resolvedPath);
+
+    db.exec("PRAGMA journal_mode = WAL;");
+    db.exec("PRAGMA synchronous = NORMAL;");
+    db.exec("PRAGMA foreign_keys = ON;");
+    db.exec("PRAGMA temp_store = MEMORY;");
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS events (
+        id TEXT PRIMARY KEY,
+        machine_id TEXT NOT NULL,
+        editor TEXT NOT NULL,
+        os TEXT NOT NULL,
+        project_name TEXT NOT NULL,
+        project_path TEXT,
+        file_path TEXT,
+        language TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        ended_at TEXT NOT NULL,
+        duration_seconds INTEGER NOT NULL,
+        is_write INTEGER NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_events_started_at ON events(started_at);
+      CREATE INDEX IF NOT EXISTS idx_events_project ON events(project_name);
+      CREATE INDEX IF NOT EXISTS idx_events_language ON events(language);
+
+      CREATE TABLE IF NOT EXISTS daily_stats (
+        day TEXT NOT NULL,
+        project_name TEXT NOT NULL,
+        language TEXT NOT NULL,
+        total_seconds INTEGER NOT NULL,
+        active_seconds INTEGER NOT NULL,
+        events_count INTEGER NOT NULL,
+        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        PRIMARY KEY (day, project_name, language)
+      );
+    `);
+
+    this.insertEventStmt = db.prepare(`
+      INSERT INTO events (
+        id, machine_id, editor, os, project_name, project_path, file_path,
+        language, started_at, ended_at, duration_seconds, is_write
+      ) VALUES (
+        @id, @machine_id, @editor, @os, @project_name, @project_path, @file_path,
+        @language, @started_at, @ended_at, @duration_seconds, @is_write
+      )
+      ON CONFLICT(id) DO NOTHING
+    `);
+
+    this.upsertDailyStmt = db.prepare(`
+      INSERT INTO daily_stats (day, project_name, language, total_seconds, active_seconds, events_count)
+      VALUES (@day, @project_name, @language, @duration_seconds, @duration_seconds, 1)
+      ON CONFLICT(day, project_name, language) DO UPDATE SET
+        total_seconds = total_seconds + excluded.total_seconds,
+        active_seconds = active_seconds + excluded.active_seconds,
+        events_count = events_count + 1,
+        updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    `);
+
+    this.queryTodayStmt = db.prepare(`
+      SELECT COALESCE(SUM(total_seconds), 0) AS seconds
+      FROM daily_stats
+      WHERE day = ?
+    `);
+
+    this.db = db;
+    this.dbPath = resolvedPath;
+    return resolvedPath;
+  }
+
+  public close(): void {
+    if (this.db) {
+      this.db.close();
+    }
+    this.db = null;
+    this.dbPath = "";
+    this.insertEventStmt = null;
+    this.upsertDailyStmt = null;
+    this.queryTodayStmt = null;
+  }
+
+  public getPath(): string {
+    return this.dbPath;
+  }
+
+  public isOpen(): boolean {
+    return this.db !== null;
+  }
+
+  public insertEvent(event: TimecodeEvent): boolean {
+    if (!this.db || !this.insertEventStmt || !this.upsertDailyStmt) {
+      throw new Error("Database is not open.");
+    }
+
+    this.db.exec("BEGIN");
+    try {
+      const insertResult = this.insertEventStmt.run({
+        id: event.id,
+        machine_id: event.machineId,
+        editor: event.editor,
+        os: event.os,
+        project_name: event.projectName,
+        project_path: event.projectPath,
+        file_path: event.filePath,
+        language: event.language,
+        started_at: event.startedAt,
+        ended_at: event.endedAt,
+        duration_seconds: event.durationSeconds,
+        is_write: event.isWrite ? 1 : 0
+      });
+
+      const inserted = (insertResult.changes ?? 0) > 0;
+      if (inserted) {
+        this.upsertDailyStmt.run({
+          day: this.localDayFromISO(event.startedAt),
+          project_name: event.projectName,
+          language: event.language,
+          duration_seconds: event.durationSeconds
+        });
+      }
+
+      this.db.exec("COMMIT");
+      return inserted;
+    } catch {
+      this.db.exec("ROLLBACK");
+      throw new Error("Failed to write event to database.");
+    }
+  }
+
+  public todayTotalSeconds(day: string): number {
+    if (!this.queryTodayStmt) {
+      return 0;
+    }
+
+    const row = this.queryTodayStmt.get([day]);
+    const seconds = row?.seconds;
+    if (typeof seconds === "number") {
+      return seconds;
+    }
+    return 0;
+  }
+
+  private localDayFromISO(isoUtc: string): string {
+    const d = new Date(isoUtc);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  private loadDatabaseSync(): DatabaseSyncCtor {
+    const dynamicRequire = require as (id: string) => unknown;
+    const mod = dynamicRequire("node:sqlite") as { DatabaseSync?: DatabaseSyncCtor };
+    if (!mod.DatabaseSync) {
+      throw new Error("node:sqlite is unavailable in this VS Code runtime.");
+    }
+    return mod.DatabaseSync;
+  }
+}
 
 class TimecodeTracker implements vscode.Disposable {
   private readonly statusBar: vscode.StatusBarItem;
   private readonly subscriptions: vscode.Disposable[] = [];
+  private readonly store = new LocalStore();
 
   private config: TrackingConfig;
-  private pendingEvents: TimecodeEvent[] = [];
   private machineId = "";
 
   private currentContext: TrackingContext | null = null;
@@ -73,12 +250,7 @@ class TimecodeTracker implements vscode.Disposable {
   private dailyTotalDay = "";
 
   private heartbeatTimer: NodeJS.Timeout | undefined;
-  private retryTimer: NodeJS.Timeout | undefined;
-  private persistQueueTimer: NodeJS.Timeout | undefined;
-
-  private isSending = false;
-  private serverOffline = false;
-  private retryBackoffMs = INITIAL_RETRY_MS;
+  private dbError: string | null = null;
 
   public constructor(private readonly extensionContext: vscode.ExtensionContext) {
     this.config = this.loadConfig();
@@ -89,34 +261,24 @@ class TimecodeTracker implements vscode.Disposable {
 
   public async start(): Promise<void> {
     this.machineId = await this.getOrCreateMachineId();
-    this.pendingEvents = this.extensionContext.globalState.get<TimecodeEvent[]>(QUEUE_STATE_KEY, []);
-    this.loadDailyTotal();
     this.currentContext = this.resolveTrackingContext(vscode.window.activeTextEditor?.document);
+    this.reopenStore();
 
     this.registerEventHandlers();
     this.registerCommands();
     this.restartHeartbeatTimer();
-    this.scheduleFlush(0);
     this.updateStatusBar();
   }
 
   public dispose(): void {
     this.flushSegmentIfNeeded(Date.now());
-    this.persistQueueNow();
-
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
     }
-    if (this.retryTimer) {
-      clearTimeout(this.retryTimer);
-    }
-    if (this.persistQueueTimer) {
-      clearTimeout(this.persistQueueTimer);
-    }
-
     for (const disposable of this.subscriptions) {
       disposable.dispose();
     }
+    this.store.close();
     this.statusBar.dispose();
   }
 
@@ -161,10 +323,15 @@ class TimecodeTracker implements vscode.Disposable {
           return;
         }
 
-        const previousInterval = this.config.heartbeatSeconds;
+        const previousHeartbeat = this.config.heartbeatSeconds;
+        const previousDbPath = this.config.dbPath;
         this.config = this.loadConfig();
-        if (previousInterval !== this.config.heartbeatSeconds) {
+
+        if (previousHeartbeat !== this.config.heartbeatSeconds) {
           this.restartHeartbeatTimer();
+        }
+        if (previousDbPath !== this.config.dbPath) {
+          this.reopenStore();
         }
         this.updateStatusBar();
       })
@@ -174,7 +341,7 @@ class TimecodeTracker implements vscode.Disposable {
   private registerCommands(): void {
     this.subscriptions.push(
       vscode.commands.registerCommand("timecode.openDashboard", async () => {
-        await vscode.env.openExternal(vscode.Uri.parse(this.config.apiBaseUrl));
+        await vscode.env.openExternal(vscode.Uri.parse(this.config.dashboardUrl));
       })
     );
 
@@ -184,23 +351,19 @@ class TimecodeTracker implements vscode.Disposable {
         const details = [
           `State: ${state}`,
           `Spent today: ${this.formatDuration(this.dailyTotalSeconds + this.currentSegmentSeconds())}`,
-          `Queued events: ${this.pendingEvents.length}`,
-          `Server URL: ${this.config.apiBaseUrl}`
+          `DB: ${this.store.getPath() || "not opened"}`
         ];
+        if (this.dbError) {
+          details.push(`DB error: ${this.dbError}`);
+        }
         await vscode.window.showInformationMessage(details.join(" | "));
       })
     );
 
     this.subscriptions.push(
-      vscode.commands.registerCommand("timecode.restartConnection", async () => {
-        this.serverOffline = false;
-        this.retryBackoffMs = INITIAL_RETRY_MS;
-        if (this.retryTimer) {
-          clearTimeout(this.retryTimer);
-          this.retryTimer = undefined;
-        }
-        this.scheduleFlush(0);
-        await vscode.window.showInformationMessage("Timecode connection restarted.");
+      vscode.commands.registerCommand("timecode.reopenDatabase", async () => {
+        this.reopenStore();
+        await vscode.window.showInformationMessage(this.dbError ? `Database error: ${this.dbError}` : "Database reopened.");
       })
     );
   }
@@ -209,7 +372,8 @@ class TimecodeTracker implements vscode.Disposable {
     const config = vscode.workspace.getConfiguration("timecode");
     return {
       enabled: config.get<boolean>("enabled", true),
-      apiBaseUrl: config.get<string>("apiBaseUrl", "http://127.0.0.1:4821"),
+      dashboardUrl: config.get<string>("dashboardUrl", "http://127.0.0.1:5173"),
+      dbPath: config.get<string>("dbPath", ""),
       heartbeatSeconds: Math.max(5, config.get<number>("heartbeatSeconds", 30)),
       includeFilePaths: config.get<boolean>("includeFilePaths", false),
       includeProjectPaths: config.get<boolean>("includeProjectPaths", false),
@@ -226,6 +390,16 @@ class TimecodeTracker implements vscode.Disposable {
     const machineId = randomUUID();
     await this.extensionContext.globalState.update(MACHINE_ID_KEY, machineId);
     return machineId;
+  }
+
+  private reopenStore(): void {
+    try {
+      this.store.open(this.config.dbPath);
+      this.dbError = null;
+      this.syncDailyTotalFromDb();
+    } catch (error) {
+      this.dbError = error instanceof Error ? error.message : "Unknown database error";
+    }
   }
 
   private restartHeartbeatTimer(): void {
@@ -264,8 +438,7 @@ class TimecodeTracker implements vscode.Disposable {
     this.writeSinceLastFlush = false;
 
     if (event) {
-      this.enqueueEvent(event);
-      this.scheduleFlush(0);
+      this.writeEvent(event);
     }
 
     this.updateStatusBar();
@@ -304,12 +477,9 @@ class TimecodeTracker implements vscode.Disposable {
     this.segmentStartedAtMs = now;
     this.writeSinceLastFlush = false;
 
-    if (!event) {
-      return;
+    if (event) {
+      this.writeEvent(event);
     }
-
-    this.enqueueEvent(event);
-    this.scheduleFlush(0);
   }
 
   private buildEvent(
@@ -332,10 +502,10 @@ class TimecodeTracker implements vscode.Disposable {
     const projectPath = this.config.includeProjectPaths ? context.projectPath : null;
     const filePath = this.config.includeFilePaths ? context.filePath : null;
 
-    const id = this.makeEventId({
+    const payload = {
       machineId: this.machineId,
-      editor: "vscode",
       os: platform(),
+      editor: "vscode" as const,
       projectName: context.projectName,
       projectPath,
       filePath,
@@ -344,21 +514,11 @@ class TimecodeTracker implements vscode.Disposable {
       endedAt,
       durationSeconds,
       isWrite
-    });
+    };
 
     return {
-      id,
-      machineId: this.machineId,
-      os: platform(),
-      editor: "vscode",
-      projectName: context.projectName,
-      projectPath,
-      filePath,
-      language: context.language,
-      startedAt,
-      endedAt,
-      durationSeconds,
-      isWrite
+      id: this.makeEventId(payload),
+      ...payload
     };
   }
 
@@ -402,112 +562,37 @@ class TimecodeTracker implements vscode.Disposable {
     return `${year}-${month}-${day}`;
   }
 
-  private loadDailyTotal(): void {
-    const stored = this.extensionContext.globalState.get<{ day: string; seconds: number } | undefined>(
-      DAILY_TOTAL_KEY
-    );
+  private syncDailyTotalFromDb(): void {
     const today = this.localDayString(new Date());
-
-    if (stored && stored.day === today) {
-      this.dailyTotalDay = stored.day;
-      this.dailyTotalSeconds = stored.seconds;
-      return;
-    }
-
     this.dailyTotalDay = today;
-    this.dailyTotalSeconds = 0;
-    this.persistDailyTotal();
+    this.dailyTotalSeconds = this.store.todayTotalSeconds(today);
   }
 
-  private persistDailyTotal(): void {
-    void this.extensionContext.globalState.update(DAILY_TOTAL_KEY, {
-      day: this.dailyTotalDay,
-      seconds: this.dailyTotalSeconds
-    });
-  }
-
-  private incrementDailyTotal(seconds: number): void {
-    const today = this.localDayString(new Date());
-    if (this.dailyTotalDay !== today) {
-      this.dailyTotalDay = today;
-      this.dailyTotalSeconds = 0;
+  private writeEvent(event: TimecodeEvent): void {
+    if (!this.store.isOpen()) {
+      this.reopenStore();
+      if (!this.store.isOpen()) {
+        this.updateStatusBar();
+        return;
+      }
     }
-
-    this.dailyTotalSeconds += seconds;
-    this.persistDailyTotal();
-  }
-
-  private enqueueEvent(event: TimecodeEvent): void {
-    this.pendingEvents.push(event);
-    this.incrementDailyTotal(event.durationSeconds);
-    this.persistQueueSoon();
-  }
-
-  private persistQueueSoon(): void {
-    if (this.persistQueueTimer) {
-      clearTimeout(this.persistQueueTimer);
-    }
-
-    this.persistQueueTimer = setTimeout(() => {
-      this.persistQueueNow();
-    }, 300);
-  }
-
-  private persistQueueNow(): void {
-    void this.extensionContext.globalState.update(QUEUE_STATE_KEY, this.pendingEvents);
-  }
-
-  private scheduleFlush(delayMs: number): void {
-    if (this.retryTimer) {
-      clearTimeout(this.retryTimer);
-    }
-
-    this.retryTimer = setTimeout(() => {
-      void this.flushQueue();
-    }, delayMs);
-  }
-
-  private async postEvents(payload: IngestEventsRequest): Promise<IngestEventsResponse> {
-    const response = await fetch(`${this.config.apiBaseUrl}/api/v1/events`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Ingest failed with status ${response.status}`);
-    }
-
-    return (await response.json()) as IngestEventsResponse;
-  }
-
-  private async flushQueue(): Promise<void> {
-    if (this.isSending || this.pendingEvents.length === 0 || !this.config.enabled) {
-      return;
-    }
-
-    this.isSending = true;
-    const batch = this.pendingEvents.slice(0, MAX_BATCH_SIZE);
-    const payload: IngestEventsRequest = { events: batch };
 
     try {
-      await this.postEvents(payload);
-      this.pendingEvents.splice(0, batch.length);
-      this.retryBackoffMs = INITIAL_RETRY_MS;
-      this.serverOffline = false;
-      this.persistQueueSoon();
-    } catch {
-      this.serverOffline = true;
-      this.retryBackoffMs = Math.min(this.retryBackoffMs * 2, MAX_RETRY_MS);
-      this.scheduleFlush(this.retryBackoffMs);
-    } finally {
-      this.isSending = false;
-      this.updateStatusBar();
-      if (!this.serverOffline && this.pendingEvents.length > 0) {
-        this.scheduleFlush(0);
+      const inserted = this.store.insertEvent(event);
+      this.dbError = null;
+      if (inserted) {
+        const today = this.localDayString(new Date());
+        const eventDay = this.localDayString(new Date(event.startedAt));
+
+        if (this.dailyTotalDay !== today) {
+          this.syncDailyTotalFromDb();
+        }
+        if (eventDay === today) {
+          this.dailyTotalSeconds += event.durationSeconds;
+        }
       }
+    } catch (error) {
+      this.dbError = error instanceof Error ? error.message : "Failed writing to DB";
     }
   }
 
@@ -515,8 +600,8 @@ class TimecodeTracker implements vscode.Disposable {
     if (!this.config.enabled) {
       return "Disabled";
     }
-    if (this.serverOffline) {
-      return "Server Offline";
+    if (this.dbError) {
+      return "DB Error";
     }
     if (!this.isFocused || Date.now() - this.lastActivityAtMs > this.config.idleThresholdSeconds * 1_000) {
       return "Idle";
@@ -527,17 +612,16 @@ class TimecodeTracker implements vscode.Disposable {
   private formatDuration(totalSeconds: number): string {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
-
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
-
     return `${minutes}m`;
   }
 
   private currentSegmentSeconds(): number {
     const trackingNow =
       this.config.enabled &&
+      !this.dbError &&
       this.currentContext !== null &&
       this.isFocused &&
       Date.now() - this.lastActivityAtMs <= this.config.idleThresholdSeconds * 1_000;
@@ -561,7 +645,8 @@ class TimecodeTracker implements vscode.Disposable {
       this.statusBar.text = `Timecode: Spent ${spent} coding (${state})`;
     }
 
-    this.statusBar.tooltip = `State: ${state} | Queued events: ${this.pendingEvents.length}`;
+    const dbPart = this.store.getPath() || "unavailable";
+    this.statusBar.tooltip = `State: ${state} | DB: ${dbPart}`;
   }
 }
 

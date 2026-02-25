@@ -24,8 +24,8 @@
         "title": "Timecode: Show Tracking Status"
       },
       {
-        "command": "timecode.restartConnection",
-        "title": "Timecode: Restart Connection"
+        "command": "timecode.reopenDatabase",
+        "title": "Timecode: Reopen Database"
       }
     ],
     "configuration": {
@@ -36,10 +36,15 @@
           "default": true,
           "description": "Enable or disable Timecode activity tracking."
         },
-        "timecode.apiBaseUrl": {
+        "timecode.dashboardUrl": {
           "type": "string",
-          "default": "http://127.0.0.1:4821",
-          "description": "Base URL of the local Timecode API server."
+          "default": "http://127.0.0.1:5173",
+          "description": "Dashboard URL opened by the command palette action."
+        },
+        "timecode.dbPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute SQLite file path. Empty uses ~/.config/timecode/timecode.db."
         },
         "timecode.heartbeatSeconds": {
           "type": "number",
