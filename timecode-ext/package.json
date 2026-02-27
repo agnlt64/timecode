@@ -8,6 +8,8 @@
     "type": "github",
     "url": "https://github.com/agnlt64/timecode"
   },
+  "icon": "./images/icon.png",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.109.0"
   },
