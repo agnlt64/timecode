@@ -38,7 +38,7 @@
         },
         "timecode.dashboardUrl": {
           "type": "string",
-          "default": "http://127.0.0.1:5173",
+          "default": "http://127.0.0.1:3000",
           "description": "Dashboard URL opened by the command palette action."
         },
         "timecode.dbPath": {
