@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { PrismaClient } from "@prisma/client";
-import type { TimecodeEvent, IngestEventsResponse } from "@shared/types";
+import type { TimecodeEvent, IngestEventsResponse } from "@/app/lib/types";
 
 const DB_PATH = process.env.TIMECODE_DB_PATH ?? join(homedir(), ".config", "timecode", "timecode.db");
 

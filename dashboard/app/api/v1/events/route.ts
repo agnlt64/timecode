@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { corsHeaders } from "@/app/lib/api-utils";
 import { ingestEvents } from "@/app/lib/db";
-import type { IngestEventsRequest, TimecodeEvent } from "@shared/types";
+import type { IngestEventsRequest, TimecodeEvent } from "@/app/lib/types";
 
 const MAX_INGEST_EVENTS = 500;
 
