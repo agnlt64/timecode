@@ -24,8 +24,8 @@
         "title": "Timecode: Show Tracking Status"
       },
       {
-        "command": "timecode.reopenDatabase",
-        "title": "Timecode: Reopen Database"
+        "command": "timecode.flushQueue",
+        "title": "Timecode: Flush Event Queue"
       }
     ],
     "configuration": {
@@ -40,11 +40,6 @@
           "type": "string",
           "default": "http://127.0.0.1:3000",
           "description": "Dashboard URL opened by the command palette action."
-        },
-        "timecode.dbPath": {
-          "type": "string",
-          "default": "",
-          "description": "Absolute SQLite file path. Empty uses ~/.config/timecode/timecode.db."
         },
         "timecode.heartbeatSeconds": {
           "type": "number",

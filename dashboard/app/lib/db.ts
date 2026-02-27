@@ -101,12 +101,13 @@ export async function queryProjectDaily(from: string, to: string) {
 }
 
 export async function queryWeekday(from: string, to: string) {
-  return prisma.$queryRaw<Array<{ dayOfWeek: number; seconds: number }>>`
+  const rows = await prisma.$queryRaw<Array<{ dayOfWeek: bigint; seconds: bigint }>>`
     SELECT CAST(strftime('%w', day) AS INTEGER) AS dayOfWeek, SUM(total_seconds) AS seconds
     FROM daily_stats
     WHERE day BETWEEN ${from} AND ${to}
     GROUP BY dayOfWeek
   `;
+  return rows.map((r) => ({ dayOfWeek: Number(r.dayOfWeek), seconds: Number(r.seconds) }));
 }
 
 export async function queryLanguages(from: string, to: string) {
