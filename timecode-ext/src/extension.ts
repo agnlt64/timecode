@@ -378,12 +378,11 @@ class TimecodeTracker implements vscode.Disposable {
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   tracker = new TimecodeTracker(context);
   await tracker.start();
-  context.subscriptions.push(tracker);
 }
 
 export async function deactivate(): Promise<void> {
   if (tracker) {
-    // Seal the current segment into the queue, then flush everything to the API.
+    // Seal the current segment into the queue, flush everything to the API, then clean up.
     tracker.dispose();
     await tracker.flushQueue();
     tracker = undefined;

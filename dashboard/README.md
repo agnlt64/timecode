@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Timecode — Dashboard
 
-## Getting Started
+The Timecode dashboard is a Next.js app that receives coding activity from the VS Code extension, stores it locally, and visualizes your stats.
 
-First, run the development server:
+## What it does
+
+- Exposes a REST API that the VS Code extension posts events to
+- Stores all events in a local SQLite database at `~/.config/timecode/timecode.db`
+- Displays charts for coding time by day, project, language, and weekday
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run db:push   # create or update the SQLite database schema
+npm run dev       # start at http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Set `TIMECODE_DB_PATH` to use a custom database location:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+TIMECODE_DB_PATH=/path/to/timecode.db npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Pages
 
-## Learn More
+| Route | Description |
+|-------|-------------|
+| `/` | Overview — daily coding time over a selected date range |
+| `/projects` | Time broken down by project |
+| `/languages` | Time broken down by programming language |
+| `/weekdays` | Average activity by day of the week |
 
-To learn more about Next.js, take a look at the following resources:
+## API
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The dashboard also serves the API consumed by the VS Code extension:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/v1/events` | Ingest a batch of coding events |
+| `GET /api/v1/stats/daily-totals` | Total seconds per day |
+| `GET /api/v1/stats/projects` | Seconds per project per day |
+| `GET /api/v1/stats/languages` | Seconds per language |
+| `GET /api/v1/stats/weekday` | Average seconds by day of week |
+| `GET /api/v1/health` | Health check |
 
-## Deploy on Vercel
+All stat endpoints accept `from` and `to` query parameters (format: `YYYY-MM-DD`).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Database
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The schema is managed with Prisma. Run `npm run db:push` after any schema change or on first install.
+
+To target a custom database path when pushing the schema, set `TIMECODE_DB_PATH` before running the command.

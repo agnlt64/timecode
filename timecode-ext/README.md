@@ -1,71 +1,47 @@
-# timecode-ext README
+# Timecode — VS Code Extension
 
-This is the README for your extension "timecode-ext". After writing up a brief description, we recommend including the following sections.
+The Timecode extension automatically tracks your coding activity in VS Code and sends it to your local Timecode dashboard.
 
-## Features
+## What it does
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- Detects when you are actively coding and records time segments with project name, language, and timestamps
+- Stops counting when VS Code loses focus or you have been idle for too long
+- Batches events and sends them to the dashboard API in the background
+- Shows today's total coding time in the status bar
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+The [Timecode dashboard](../dashboard/) must be running locally. By default the extension connects to `http://127.0.0.1:3000`.
 
-## Extension Settings
+## Status bar
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+The status bar item shows your total coding time for today and the current tracking state:
 
-For example:
+- `Timecode: Spent 2h 15m coding` — actively tracking
+- `Timecode: Spent 2h 15m coding (Idle)` — no recent activity
+- `Timecode: Spent 2h 15m coding (API Error)` — cannot reach the dashboard
 
-This extension contributes the following settings:
+Click the status bar item to see more details including queued events and the last API error.
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+## Commands
 
-## Known Issues
+| Command | Description |
+|---------|-------------|
+| `Timecode: Open Dashboard` | Opens the dashboard URL in your browser |
+| `Timecode: Show Tracking Status` | Shows current state, today's total, and queue info |
+| `Timecode: Flush Event Queue` | Immediately sends all pending events to the API |
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+## Settings
 
-## Release Notes
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `timecode.enabled` | `true` | Enable or disable activity tracking |
+| `timecode.dashboardUrl` | `http://127.0.0.1:3000` | URL of your local Timecode dashboard |
+| `timecode.heartbeatSeconds` | `30` | How often (in seconds) to record a time segment while active |
+| `timecode.idleThresholdSeconds` | `120` | Seconds of inactivity before tracking pauses |
+| `timecode.includeFilePaths` | `false` | Include absolute file paths in event payloads |
+| `timecode.includeProjectPaths` | `false` | Include project root paths in event payloads |
 
-Users appreciate release notes as you update your extension.
+## Privacy
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+By default, only the project name and language are recorded — no file contents, no file paths, no project paths. Enable `timecode.includeFilePaths` or `timecode.includeProjectPaths` to opt in to storing those.
