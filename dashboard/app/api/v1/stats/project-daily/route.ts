@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: range.error }, { status: range.status, headers: corsHeaders() });
   }
 
-  const items = queryProjectDaily(range.from, range.to);
+  const items = await queryProjectDaily(range.from, range.to);
   return NextResponse.json({ from: range.from, to: range.to, items }, { headers: corsHeaders() });
 }
 

@@ -1,0 +1,52 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Event {
+  id              String  @id
+  machineId       String  @map("machine_id")
+  editor          String
+  os              String
+  projectName     String  @map("project_name")
+  projectPath     String? @map("project_path")
+  filePath        String? @map("file_path")
+  language        String
+  startedAt       String  @map("started_at")
+  endedAt         String  @map("ended_at")
+  durationSeconds Int     @map("duration_seconds")
+  isWrite         Boolean @map("is_write")
+  createdAt       String  @map("created_at") @default(dbgenerated("(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))"))
+
+  @@index([startedAt], map: "idx_events_started_at")
+  @@index([projectName], map: "idx_events_project")
+  @@index([language], map: "idx_events_language")
+  @@map("events")
+}
+
+model DailyStat {
+  day           String
+  projectName   String @map("project_name")
+  language      String
+  totalSeconds  Int    @map("total_seconds")
+  activeSeconds Int    @map("active_seconds")
+  eventsCount   Int    @map("events_count")
+  updatedAt     String @map("updated_at") @default(dbgenerated("(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))"))
+
+  @@id([day, projectName, language])
+  @@index([day], map: "idx_daily_day")
+  @@index([projectName], map: "idx_daily_project")
+  @@index([language], map: "idx_daily_language")
+  @@map("daily_stats")
+}
+
+model Meta {
+  key   String @id
+  value String
+
+  @@map("meta")
+}

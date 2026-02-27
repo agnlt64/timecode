@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = ingestEvents(payload.events);
+    const result = await ingestEvents(payload.events);
     return NextResponse.json(result, { headers: corsHeaders() });
   } catch (error) {
     return NextResponse.json(
