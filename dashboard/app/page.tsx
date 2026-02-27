@@ -1,18 +1,20 @@
+"use client";
+
 import {
   LanguageDonut,
   ProjectStackedChart,
   TrendLineChart,
   WeekdayBarChart
-} from "~/components/charts";
+} from "@/app/components/charts";
 import {
   LoadingSkeleton,
   RangePicker,
   StatCard,
   useDashboardData
-} from "~/components/dashboard-shell";
-import { formatShortDate } from "~/lib/stats";
+} from "@/app/components/dashboard-shell";
+import { formatShortDate } from "@/app/lib/stats";
 
-export default function OverviewRoute() {
+export default function OverviewPage() {
   const {
     range,
     setRange,
@@ -29,13 +31,10 @@ export default function OverviewRoute() {
 
   return (
     <div className="space-y-5">
-      {/* Range picker */}
       <RangePicker range={range} onChange={setRange} />
 
-      {/* Loading */}
       {loading ? <LoadingSkeleton /> : null}
 
-      {/* Error */}
       {error ? (
         <div className="rounded-xl bg-surface border border-red-900/40 p-4 text-red-400 text-sm">
           {error}
@@ -44,7 +43,6 @@ export default function OverviewRoute() {
 
       {stats && !loading ? (
         <>
-          {/* Stat cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-in">
             <StatCard label="Total coded" value={totalLabel} />
             <StatCard
@@ -61,16 +59,13 @@ export default function OverviewRoute() {
             />
           </div>
 
-          {/* Trend chart */}
           <TrendLineChart items={stats.dailyTotals} />
 
-          {/* Projects + Languages side by side */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <ProjectStackedChart items={stats.projectDaily} />
             <LanguageDonut items={stats.languages} />
           </div>
 
-          {/* Weekday chart */}
           <WeekdayBarChart items={stats.weekday} />
         </>
       ) : null}

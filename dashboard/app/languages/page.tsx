@@ -1,7 +1,9 @@
-import { TrendLineChart, WeekdayBarChart } from "~/components/charts";
-import { RangePicker, useDashboardData } from "~/components/dashboard-shell";
+"use client";
 
-export default function WeekdaysRoute() {
+import { LanguageDonut } from "@/app/components/charts";
+import { RangePicker, useDashboardData } from "@/app/components/dashboard-shell";
+
+export default function LanguagesPage() {
   const { range, setRange, stats, loading, error } = useDashboardData();
 
   return (
@@ -15,12 +17,7 @@ export default function WeekdaysRoute() {
           {error}
         </div>
       ) : null}
-      {stats && !loading ? (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <WeekdayBarChart items={stats.weekday} />
-          <TrendLineChart items={stats.dailyTotals} />
-        </div>
-      ) : null}
+      {stats && !loading ? <LanguageDonut items={stats.languages} /> : null}
     </div>
   );
 }

@@ -1,4 +1,6 @@
-import { formatDuration, formatShortDate } from "~/lib/stats";
+"use client";
+
+import { formatDuration, formatShortDate } from "@/app/lib/stats";
 
 type ProjectDailyItem = { day: string; projectName: string; seconds: number };
 type WeekdayItem = { dayOfWeek: number; seconds: number };

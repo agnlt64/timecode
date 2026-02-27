@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -10,7 +12,7 @@ import {
   type DashboardStats,
   type DateRange,
   rangeLabel
-} from "~/lib/stats";
+} from "@/app/lib/stats";
 
 export function useDashboardData() {
   const [range, setRange] = useState<DateRange>(defaultWeekRange());

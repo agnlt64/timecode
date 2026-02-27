@@ -42,7 +42,7 @@ export function last30DaysRange(): DateRange {
 }
 
 function apiBase(): string {
-  return import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:4821";
+  return process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 }
 
 async function fetchJson<T>(path: string): Promise<T> {

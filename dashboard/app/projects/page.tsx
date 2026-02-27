@@ -1,7 +1,9 @@
-import { ProjectStackedChart } from "~/components/charts";
-import { RangePicker, useDashboardData } from "~/components/dashboard-shell";
+"use client";
 
-export default function ProjectsRoute() {
+import { ProjectStackedChart } from "@/app/components/charts";
+import { RangePicker, useDashboardData } from "@/app/components/dashboard-shell";
+
+export default function ProjectsPage() {
   const { range, setRange, stats, loading, error } = useDashboardData();
 
   return (
