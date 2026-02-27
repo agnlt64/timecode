@@ -11,7 +11,7 @@ The Timecode extension automatically tracks your coding activity in VS Code and 
 
 ## Requirements
 
-The [Timecode dashboard](../dashboard/) must be running locally. By default the extension connects to `http://127.0.0.1:3000`.
+The [Timecode dashboard](https://github.com/agnlt64/timecode/tree/main/dashboard) must be running locally. By default the extension connects to `http://127.0.0.1:3000`.
 
 ## Status bar
 

@@ -2,7 +2,7 @@
   "name": "timecode-ext",
   "displayName": "Timecode",
   "description": "Local-first coding activity tracker for VS Code",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "agnlt64",
   "repository": {
     "type": "github",
