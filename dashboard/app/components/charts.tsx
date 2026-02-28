@@ -32,6 +32,7 @@ export function ProjectStackedChart({ items }: { items: ProjectDailyItem[] }) {
   }
 
   const sorted = [...projectTotals.entries()]
+    .filter(([, s]) => s > 60)
     .sort((a, b) => b[1] - a[1]);
 
   const maxSeconds = Math.max(1, ...sorted.map(([, s]) => s));
@@ -64,7 +65,7 @@ export function ProjectStackedChart({ items }: { items: ProjectDailyItem[] }) {
                 </div>
                 <span className="text-sm text-muted font-mono">{formatDuration(seconds)}</span>
               </div>
-              <div className="h-2 rounded-full bg-[#222226] overflow-hidden">
+              <div className="h-2 rounded-full bg-surface-hover overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
@@ -103,10 +104,15 @@ export function WeekdayBarChart({ items }: { items: WeekdayItem[] }) {
           const isToday = weekday === today;
           return (
             <div key={weekday} className="flex-1 flex flex-col items-center">
-              <span className="text-[10px] text-muted font-mono h-4 mb-1">
-                {seconds > 0 ? formatDuration(seconds) : ""}
-              </span>
-              <div className="w-full flex items-end justify-center h-32">
+              <div className="w-full flex items-end justify-center h-32 relative">
+                {seconds > 0 && (
+                  <span
+                    className="absolute text-[10px] text-muted font-mono whitespace-nowrap"
+                    style={{ bottom: Math.max(6, h) + 6 }}
+                  >
+                    {formatDuration(seconds)}
+                  </span>
+                )}
                 <div
                   className="w-full max-w-10 rounded-t-md transition-all duration-500"
                   style={{
@@ -134,7 +140,9 @@ export function LanguageDonut({ items }: { items: LanguageItem[] }) {
   const slices: string[] = [];
   let cursor = 0;
 
-  items.forEach((item, idx) => {
+  const visibleItems = items.filter((item) => item.seconds > 60);
+
+  visibleItems.forEach((item, idx) => {
     const pct = total > 0 ? (item.seconds / total) * 100 : 0;
     slices.push(`${colorFor(idx)} ${cursor}% ${cursor + pct}%`);
     cursor += pct;
@@ -156,10 +164,10 @@ export function LanguageDonut({ items }: { items: LanguageItem[] }) {
           </div>
         </div>
         <div className="space-y-2 text-sm min-w-0">
-          {items.length === 0 ? (
+          {visibleItems.length === 0 ? (
             <p className="text-muted">No language data.</p>
           ) : null}
-          {items.map((item, idx) => {
+          {visibleItems.map((item, idx) => {
             const pct = total > 0 ? (item.seconds / total) * 100 : 0;
             return (
               <div key={item.language} className="flex items-center gap-2">
@@ -192,8 +200,9 @@ export function TrendLineChart({ items }: { items: DailyTotalItem[] }) {
   const padBottom = 30;
   const chartH = height - padTop - padBottom;
 
+  const padRight = 20;
   const points = sorted.map((item, i) => {
-    const x = sorted.length > 1 ? (i / (sorted.length - 1)) * width : width / 2;
+    const x = sorted.length > 1 ? (i / (sorted.length - 1)) * (width - padRight) : (width - padRight) / 2;
     const y = padTop + chartH - (item.seconds / max) * chartH;
     return { x, y, day: item.day, seconds: item.seconds };
   });
@@ -231,7 +240,7 @@ export function TrendLineChart({ items }: { items: DailyTotalItem[] }) {
       <h3 className="text-base font-semibold">Daily Trend</h3>
       <p className="mt-1 text-xs text-muted">Spot momentum and low-output days</p>
       <div className="mt-4 overflow-x-auto">
-        <svg viewBox={`-50 0 ${width + 60} ${height}`} className="w-full min-w-[500px]">
+        <svg viewBox={`-50 0 ${width + 60} ${height}`} className="w-full min-w-125">
           {/* Y-axis grid lines */}
           {yLabels.map(({ seconds, y }) => (
             <g key={seconds}>
