@@ -70,6 +70,7 @@ class TimecodeTracker implements vscode.Disposable {
         }
         this.isFocused = state.focused;
         if (state.focused) {
+          this.segmentStartedAtMs = now;
           this.markActivity(false);
         }
         this.updateStatusBar();
