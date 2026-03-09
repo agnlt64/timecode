@@ -42,6 +42,14 @@ export function resolveRange(url: URL): { from: string; to: string } | { error: 
   return { from, to };
 }
 
+export function resolveMachineId(url: URL): string | { error: string; status: number } {
+  const id = url.searchParams.get("machineId");
+  if (!id || id.trim().length === 0) {
+    return { error: "Missing required query param: machineId", status: 400 };
+  }
+  return id.trim();
+}
+
 export function corsHeaders(): Record<string, string> {
   return {
     "access-control-allow-origin": "*",

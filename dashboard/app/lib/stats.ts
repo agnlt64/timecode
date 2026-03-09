@@ -53,8 +53,8 @@ async function fetchJson<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function fetchDashboardStats(range: DateRange): Promise<DashboardStats> {
-  const query = `from=${range.from}&to=${range.to}`;
+export async function fetchDashboardStats(range: DateRange, machineId: string): Promise<DashboardStats> {
+  const query = `from=${range.from}&to=${range.to}&machineId=${encodeURIComponent(machineId)}`;
 
   const [projectDaily, weekday, languages, dailyTotals] = await Promise.all([
     fetchJson<{ items: ProjectDailyItem[] }>(`/api/v1/stats/project-daily?${query}`),

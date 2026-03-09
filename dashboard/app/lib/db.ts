@@ -61,7 +61,14 @@ export async function ingestEvents(events: TimecodeEvent[]): Promise<IngestEvent
       const day = localDayFromISO(event.startedAt);
 
       await tx.dailyStat.upsert({
-        where: { day_projectName_language: { day, projectName: event.projectName, language: event.language } },
+        where: {
+          day_machineId_projectName_language: {
+            day,
+            machineId: event.machineId,
+            projectName: event.projectName,
+            language: event.language
+          }
+        },
         update: {
           totalSeconds: { increment: event.durationSeconds },
           activeSeconds: { increment: event.durationSeconds },
@@ -70,6 +77,7 @@ export async function ingestEvents(events: TimecodeEvent[]): Promise<IngestEvent
         },
         create: {
           day,
+          machineId: event.machineId,
           projectName: event.projectName,
           language: event.language,
           totalSeconds: event.durationSeconds,
@@ -85,10 +93,10 @@ export async function ingestEvents(events: TimecodeEvent[]): Promise<IngestEvent
   return result;
 }
 
-export async function queryProjectDaily(from: string, to: string) {
+export async function queryProjectDaily(machineId: string, from: string, to: string) {
   const rows = await prisma.dailyStat.groupBy({
     by: ["day", "projectName"],
-    where: { day: { gte: from, lte: to } },
+    where: { machineId, day: { gte: from, lte: to } },
     _sum: { totalSeconds: true },
     orderBy: [{ day: "asc" }, { _sum: { totalSeconds: "desc" } }]
   });
@@ -100,20 +108,20 @@ export async function queryProjectDaily(from: string, to: string) {
   }));
 }
 
-export async function queryWeekday(from: string, to: string) {
+export async function queryWeekday(machineId: string, from: string, to: string) {
   const rows = await prisma.$queryRaw<Array<{ dayOfWeek: bigint; seconds: bigint }>>`
     SELECT CAST(strftime('%w', day) AS INTEGER) AS dayOfWeek, SUM(total_seconds) AS seconds
     FROM daily_stats
-    WHERE day BETWEEN ${from} AND ${to}
+    WHERE machine_id = ${machineId} AND day BETWEEN ${from} AND ${to}
     GROUP BY dayOfWeek
   `;
   return rows.map((r) => ({ dayOfWeek: Number(r.dayOfWeek), seconds: Number(r.seconds) }));
 }
 
-export async function queryLanguages(from: string, to: string) {
+export async function queryLanguages(machineId: string, from: string, to: string) {
   const rows = await prisma.dailyStat.groupBy({
     by: ["language"],
-    where: { day: { gte: from, lte: to } },
+    where: { machineId, day: { gte: from, lte: to } },
     _sum: { totalSeconds: true },
     orderBy: { _sum: { totalSeconds: "desc" } }
   });
@@ -124,10 +132,10 @@ export async function queryLanguages(from: string, to: string) {
   }));
 }
 
-export async function queryDailyTotals(from: string, to: string) {
+export async function queryDailyTotals(machineId: string, from: string, to: string) {
   const rows = await prisma.dailyStat.groupBy({
     by: ["day"],
-    where: { day: { gte: from, lte: to } },
+    where: { machineId, day: { gte: from, lte: to } },
     _sum: { totalSeconds: true },
     orderBy: { day: "asc" }
   });

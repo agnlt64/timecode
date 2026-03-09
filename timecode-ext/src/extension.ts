@@ -1,11 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
-import { platform } from "node:os";
-import { basename } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir, platform } from "node:os";
+import { basename, dirname, join } from "node:path";
 import * as vscode from "vscode";
 import { EventQueue, localDayString } from "./queue";
 import type { TimecodeEvent, TrackingConfig, TrackingContext } from "./types";
 
-const MACHINE_ID_KEY = "timecode.machineId";
+const MACHINE_ID_FILE = join(homedir(), ".config", "timecode", "machine-id");
 
 let tracker: TimecodeTracker | undefined;
 
@@ -117,7 +118,7 @@ class TimecodeTracker implements vscode.Disposable {
   private registerCommands(): void {
     this.subscriptions.push(
       vscode.commands.registerCommand("timecode.openDashboard", async () => {
-        await vscode.env.openExternal(vscode.Uri.parse(this.config.dashboardUrl));
+        await vscode.env.openExternal(vscode.Uri.parse(`${this.config.dashboardUrl}/${this.machineId}`));
       })
     );
 
@@ -166,12 +167,15 @@ class TimecodeTracker implements vscode.Disposable {
   }
 
   private async getOrCreateMachineId(): Promise<string> {
-    const existing = this.extensionContext.globalState.get<string>(MACHINE_ID_KEY);
-    if (existing && existing.length > 0) {
-      return existing;
+    if (existsSync(MACHINE_ID_FILE)) {
+      const existing = readFileSync(MACHINE_ID_FILE, "utf-8").trim();
+      if (existing.length > 0) {
+        return existing;
+      }
     }
     const machineId = randomUUID();
-    await this.extensionContext.globalState.update(MACHINE_ID_KEY, machineId);
+    mkdirSync(dirname(MACHINE_ID_FILE), { recursive: true });
+    writeFileSync(MACHINE_ID_FILE, machineId, "utf-8");
     return machineId;
   }
 

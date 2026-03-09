@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 
 import {
   bestDay,
@@ -15,6 +16,7 @@ import {
 } from "@/app/lib/stats";
 
 export function useDashboardData() {
+  const { machineId } = useParams<{ machineId: string }>();
   const [range, setRange] = useState<DateRange>(defaultWeekRange());
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ export function useDashboardData() {
     setLoading(true);
     setError(null);
 
-    fetchDashboardStats(range)
+    fetchDashboardStats(range, machineId)
       .then((data) => {
         if (!active) return;
         setStats(data);
@@ -42,7 +44,7 @@ export function useDashboardData() {
     return () => {
       active = false;
     };
-  }, [range.from, range.to]);
+  }, [range.from, range.to, machineId]);
 
   const totalSeconds = useMemo(() => {
     if (!stats) return 0;

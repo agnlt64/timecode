@@ -30,6 +30,7 @@ model Event {
 
 model DailyStat {
   day           String
+  machineId     String @map("machine_id")
   projectName   String @map("project_name")
   language      String
   totalSeconds  Int    @map("total_seconds")
@@ -37,8 +38,9 @@ model DailyStat {
   eventsCount   Int    @map("events_count")
   updatedAt     String @map("updated_at") @default(dbgenerated("(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))"))
 
-  @@id([day, projectName, language])
+  @@id([day, machineId, projectName, language])
   @@index([day], map: "idx_daily_day")
+  @@index([machineId], map: "idx_daily_machine")
   @@index([projectName], map: "idx_daily_project")
   @@index([language], map: "idx_daily_language")
   @@map("daily_stats")
