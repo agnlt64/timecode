@@ -13,8 +13,10 @@ import {
   useDashboardData
 } from "@/app/components/dashboard-shell";
 import { formatShortDate } from "@/app/lib/stats";
+import { useParams } from "next/navigation";
 
 export default function OverviewPage() {
+  const { machineId } = useParams<{ machineId: string }>();
   const {
     range,
     setRange,
@@ -29,9 +31,21 @@ export default function OverviewPage() {
     bestDayDate
   } = useDashboardData();
 
+  const imageUrl = `/api/v1/image?from=${range.from}&to=${range.to}&machineId=${encodeURIComponent(machineId)}`;
+
   return (
     <div className="space-y-5">
-      <RangePicker range={range} onChange={setRange} />
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <RangePicker range={range} onChange={setRange} />
+        <a
+          href={imageUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-surface text-muted text-sm font-medium hover:text-white hover:bg-surface-hover transition-colors"
+        >
+          Export image
+        </a>
+      </div>
 
       {loading ? <LoadingSkeleton /> : null}
 
