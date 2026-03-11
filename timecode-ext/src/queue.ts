@@ -16,14 +16,16 @@ export class EventQueue {
   private flushTimer: NodeJS.Timeout | undefined;
   private eventsUrl = "";
   private dailyTotalsUrl = "";
+  private machineId = "";
   private todaySeconds = 0;
   private todayDay = "";
   private lastError: string | null = null;
 
-  configure(dashboardUrl: string): void {
+  configure(dashboardUrl: string, machineId: string): void {
     const base = dashboardUrl.replace(/\/$/, "");
     this.eventsUrl = `${base}/api/v1/events`;
     this.dailyTotalsUrl = `${base}/api/v1/stats/daily-totals`;
+    this.machineId = machineId;
     this.stopTimer();
     this.startTimer();
     this.syncTodayFromApi().catch(() => {});
@@ -109,7 +111,7 @@ export class EventQueue {
     }
     const today = localDayString(new Date());
     try {
-      const res = await fetch(`${this.dailyTotalsUrl}?from=${today}&to=${today}`, {
+      const res = await fetch(`${this.dailyTotalsUrl}?from=${today}&to=${today}&machineId=${encodeURIComponent(this.machineId)}`, {
         signal: AbortSignal.timeout(5_000)
       });
       if (!res.ok) {

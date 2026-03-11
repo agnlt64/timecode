@@ -36,7 +36,7 @@ class TimecodeTracker implements vscode.Disposable {
   public async start(): Promise<void> {
     this.machineId = await this.getOrCreateMachineId();
     this.currentContext = this.resolveTrackingContext(vscode.window.activeTextEditor?.document);
-    this.queue.configure(this.config.dashboardUrl);
+    this.queue.configure(this.config.dashboardUrl, this.machineId);
     this.registerEventHandlers();
     this.registerCommands();
     this.restartHeartbeatTimer();
@@ -105,7 +105,7 @@ class TimecodeTracker implements vscode.Disposable {
         const previousHeartbeat = this.config.heartbeatSeconds;
         this.config = this.loadConfig();
         if (previousDashboardUrl !== this.config.dashboardUrl) {
-          this.queue.configure(this.config.dashboardUrl);
+          this.queue.configure(this.config.dashboardUrl, this.machineId);
         }
         if (previousHeartbeat !== this.config.heartbeatSeconds) {
           this.restartHeartbeatTimer();
