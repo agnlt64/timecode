@@ -13,7 +13,7 @@ Timecode is a free, open-source, self-hosted coding activity tracker. It automat
 |-----------|-------------|
 | `timecode-ext/` | VS Code extension |
 | `dashboard/` | Next.js dashboard and API |
-| `shared/` | Shared TypeScript types |
+| `bot/` | Discord bot |
 
 ## Getting started
 
@@ -40,6 +40,33 @@ Open [http://localhost:3000](http://localhost:3000) to see:
 - **Projects** — time broken down by project
 - **Languages** — time broken down by programming language
 - **Weekdays** — average activity by day of the week
+
+## Discord bot
+
+The bot exposes Timecode data via Discord slash commands.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `/timecode-leaderboard` | Display the coding leaderboard |
+
+### Setup
+
+Create a `bot/.env` file with the following variables:
+
+```
+BOT_TOKEN=your_discord_bot_token
+CLIENT_ID=your_application_client_id
+GUILD_ID=your_guild_id
+```
+
+```bash
+cd bot
+npm install
+npm run deploy   # register slash commands with Discord (only needed when commands change)
+npm run bot      # start the bot
+```
 
 ## Data
 
