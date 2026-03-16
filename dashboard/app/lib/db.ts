@@ -132,6 +132,22 @@ export async function queryLanguages(machineId: string, from: string, to: string
   }));
 }
 
+export async function queryLeaderboard(from: string, to: string, limit: number) {
+  const rows = await prisma.dailyStat.groupBy({
+    by: ["projectName"],
+    where: { day: { gte: from, lte: to } },
+    _sum: { totalSeconds: true },
+    orderBy: { _sum: { totalSeconds: "desc" } },
+    take: limit
+  });
+
+  return rows.map((r, i) => ({
+    rank: i + 1,
+    projectName: r.projectName,
+    seconds: r._sum.totalSeconds ?? 0
+  }));
+}
+
 export async function queryDailyTotals(machineId: string, from: string, to: string) {
   const rows = await prisma.dailyStat.groupBy({
     by: ["day"],
