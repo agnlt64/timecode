@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "start": "node dist/server/server.js",
+    "start": "node .output/server/index.mjs",
     "db:generate": "prisma generate",
     "db:push": "node scripts/db-push.mjs",
     "postinstall": "prisma generate"
@@ -26,6 +26,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.2",
+    "nitro": "^3.0.260610-beta",
     "prisma": "^6.19.2",
     "tailwindcss": "^4.2.1",
     "typescript": "^5",
