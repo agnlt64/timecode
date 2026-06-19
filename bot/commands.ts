@@ -1,3 +1,4 @@
+import cron from 'node-cron';
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import type { ChatInputCommandInteraction, TextChannel, Client } from 'discord.js';
 
@@ -83,16 +84,21 @@ async function fetchLeaderboardEmbed(periodChoice: string, limit: number): Promi
         .setTimestamp();
 }
 
-// Scheduler: posts the leaderboard automatically at a fixed interval
+// Scheduler: posts the leaderboard automatically on a cron schedule
 export function startScheduler(client: Client): void {
     const channelId = process.env.LEADERBOARD_CHANNEL_ID;
-    const intervalHours = parseFloat(process.env.LEADERBOARD_INTERVAL_HOURS ?? '168'); // one week
+    const cronExpr = process.env.LEADERBOARD_CRON ?? '0 9 * * 1'; // every Monday at 9am
     const period = process.env.LEADERBOARD_PERIOD ?? '7d';
     const limit = parseInt(process.env.LEADERBOARD_LIMIT ?? '10', 10);
 
     if (!channelId) return;
 
-    const post = async () => {
+    if (!cron.validate(cronExpr)) {
+        console.error(`Invalid LEADERBOARD_CRON expression: "${cronExpr}"`);
+        return;
+    }
+
+    cron.schedule(cronExpr, async () => {
         const channel = await client.channels.fetch(channelId).catch(() => null);
         if (!channel?.isTextBased()) return;
 
@@ -102,10 +108,9 @@ export function startScheduler(client: Client): void {
         } else {
             await (channel as TextChannel).send({ embeds: [result] });
         }
-    };
+    });
 
-    setInterval(post, intervalHours * 3600 * 1000);
-    console.log(`Leaderboard scheduler started (every ${intervalHours}h → #${channelId})`);
+    console.log(`Leaderboard scheduler started (cron: "${cronExpr}" → #${channelId})`);
 }
 
 const leaderboard = new SlashCommandBuilder()
