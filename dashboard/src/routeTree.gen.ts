@@ -12,9 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as MachineIdRouteImport } from './routes/$machineId'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MachineIdIndexRouteImport } from './routes/$machineId/index'
-import { Route as MachineIdWeekdaysRouteImport } from './routes/$machineId/weekdays'
-import { Route as MachineIdProjectsRouteImport } from './routes/$machineId/projects'
-import { Route as MachineIdLanguagesRouteImport } from './routes/$machineId/languages'
 import { Route as ApiV1LeaderboardRouteImport } from './routes/api/v1/leaderboard'
 import { Route as ApiV1ImageRouteImport } from './routes/api/v1/image'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
@@ -37,21 +34,6 @@ const IndexRoute = IndexRouteImport.update({
 const MachineIdIndexRoute = MachineIdIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => MachineIdRoute,
-} as any)
-const MachineIdWeekdaysRoute = MachineIdWeekdaysRouteImport.update({
-  id: '/weekdays',
-  path: '/weekdays',
-  getParentRoute: () => MachineIdRoute,
-} as any)
-const MachineIdProjectsRoute = MachineIdProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
-  getParentRoute: () => MachineIdRoute,
-} as any)
-const MachineIdLanguagesRoute = MachineIdLanguagesRouteImport.update({
-  id: '/languages',
-  path: '/languages',
   getParentRoute: () => MachineIdRoute,
 } as any)
 const ApiV1LeaderboardRoute = ApiV1LeaderboardRouteImport.update({
@@ -98,9 +80,6 @@ const ApiV1StatsDailyTotalsRoute = ApiV1StatsDailyTotalsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$machineId': typeof MachineIdRouteWithChildren
-  '/$machineId/languages': typeof MachineIdLanguagesRoute
-  '/$machineId/projects': typeof MachineIdProjectsRoute
-  '/$machineId/weekdays': typeof MachineIdWeekdaysRoute
   '/$machineId/': typeof MachineIdIndexRoute
   '/api/v1/events': typeof ApiV1EventsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
@@ -113,9 +92,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/$machineId/languages': typeof MachineIdLanguagesRoute
-  '/$machineId/projects': typeof MachineIdProjectsRoute
-  '/$machineId/weekdays': typeof MachineIdWeekdaysRoute
   '/$machineId': typeof MachineIdIndexRoute
   '/api/v1/events': typeof ApiV1EventsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
@@ -130,9 +106,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$machineId': typeof MachineIdRouteWithChildren
-  '/$machineId/languages': typeof MachineIdLanguagesRoute
-  '/$machineId/projects': typeof MachineIdProjectsRoute
-  '/$machineId/weekdays': typeof MachineIdWeekdaysRoute
   '/$machineId/': typeof MachineIdIndexRoute
   '/api/v1/events': typeof ApiV1EventsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
@@ -148,9 +121,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$machineId'
-    | '/$machineId/languages'
-    | '/$machineId/projects'
-    | '/$machineId/weekdays'
     | '/$machineId/'
     | '/api/v1/events'
     | '/api/v1/health'
@@ -163,9 +133,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/$machineId/languages'
-    | '/$machineId/projects'
-    | '/$machineId/weekdays'
     | '/$machineId'
     | '/api/v1/events'
     | '/api/v1/health'
@@ -179,9 +146,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$machineId'
-    | '/$machineId/languages'
-    | '/$machineId/projects'
-    | '/$machineId/weekdays'
     | '/$machineId/'
     | '/api/v1/events'
     | '/api/v1/health'
@@ -227,27 +191,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/$machineId/'
       preLoaderRoute: typeof MachineIdIndexRouteImport
-      parentRoute: typeof MachineIdRoute
-    }
-    '/$machineId/weekdays': {
-      id: '/$machineId/weekdays'
-      path: '/weekdays'
-      fullPath: '/$machineId/weekdays'
-      preLoaderRoute: typeof MachineIdWeekdaysRouteImport
-      parentRoute: typeof MachineIdRoute
-    }
-    '/$machineId/projects': {
-      id: '/$machineId/projects'
-      path: '/projects'
-      fullPath: '/$machineId/projects'
-      preLoaderRoute: typeof MachineIdProjectsRouteImport
-      parentRoute: typeof MachineIdRoute
-    }
-    '/$machineId/languages': {
-      id: '/$machineId/languages'
-      path: '/languages'
-      fullPath: '/$machineId/languages'
-      preLoaderRoute: typeof MachineIdLanguagesRouteImport
       parentRoute: typeof MachineIdRoute
     }
     '/api/v1/leaderboard': {
@@ -310,16 +253,10 @@ declare module '@tanstack/react-router' {
 }
 
 interface MachineIdRouteChildren {
-  MachineIdLanguagesRoute: typeof MachineIdLanguagesRoute
-  MachineIdProjectsRoute: typeof MachineIdProjectsRoute
-  MachineIdWeekdaysRoute: typeof MachineIdWeekdaysRoute
   MachineIdIndexRoute: typeof MachineIdIndexRoute
 }
 
 const MachineIdRouteChildren: MachineIdRouteChildren = {
-  MachineIdLanguagesRoute: MachineIdLanguagesRoute,
-  MachineIdProjectsRoute: MachineIdProjectsRoute,
-  MachineIdWeekdaysRoute: MachineIdWeekdaysRoute,
   MachineIdIndexRoute: MachineIdIndexRoute,
 }
 

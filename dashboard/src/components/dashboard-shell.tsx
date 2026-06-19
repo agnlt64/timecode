@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "@tanstack/react-router";
-
 import {
   bestDay,
   defaultWeekRange,
@@ -10,7 +9,7 @@ import {
   last30DaysRange,
   type DashboardStats,
   type DateRange,
-  rangeLabel
+  rangeLabel,
 } from "@/lib/stats";
 
 export function useDashboardData() {
@@ -26,47 +25,36 @@ export function useDashboardData() {
     setError(null);
 
     fetchDashboardStats(range, machineId)
-      .then((data) => {
-        if (!active) return;
-        setStats(data);
-      })
+      .then((data) => { if (active) setStats(data); })
       .catch((err: unknown) => {
-        if (!active) return;
-        setError(err instanceof Error ? err.message : "Failed to load stats");
+        if (active) setError(err instanceof Error ? err.message : "Failed to load stats");
       })
-      .finally(() => {
-        if (!active) return;
-        setLoading(false);
-      });
+      .finally(() => { if (active) setLoading(false); });
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [range.from, range.to, machineId]);
 
-  const totalSeconds = useMemo(() => {
-    if (!stats) return 0;
-    return stats.dailyTotals.reduce((acc, x) => acc + x.seconds, 0);
-  }, [stats]);
+  const totalSeconds = useMemo(
+    () => (stats ? stats.dailyTotals.reduce((acc, x) => acc + x.seconds, 0) : 0),
+    [stats],
+  );
 
-  const activeDays = useMemo(() => {
-    if (!stats) return 0;
-    return stats.dailyTotals.filter((x) => x.seconds > 0).length;
-  }, [stats]);
+  const activeDays = useMemo(
+    () => (stats ? stats.dailyTotals.filter((x) => x.seconds > 0).length : 0),
+    [stats],
+  );
 
-  const totalDays = useMemo(() => {
-    if (!stats) return 1;
-    return Math.max(1, stats.dailyTotals.length);
-  }, [stats]);
+  const totalDays = useMemo(
+    () => (stats ? Math.max(1, stats.dailyTotals.length) : 1),
+    [stats],
+  );
 
-  const dailyAverage = useMemo(() => {
-    return activeDays > 0 ? Math.round(totalSeconds / activeDays) : 0;
-  }, [totalSeconds, activeDays]);
+  const dailyAverage = useMemo(
+    () => (activeDays > 0 ? Math.round(totalSeconds / activeDays) : 0),
+    [totalSeconds, activeDays],
+  );
 
-  const best = useMemo(() => {
-    if (!stats) return null;
-    return bestDay(stats.dailyTotals);
-  }, [stats]);
+  const best = useMemo(() => (stats ? bestDay(stats.dailyTotals) : null), [stats]);
 
   return {
     range,
@@ -83,7 +71,7 @@ export function useDashboardData() {
     dailyAverageLabel: formatDuration(dailyAverage),
     bestDayLabel: best ? formatDuration(best.seconds) : "—",
     bestDayDate: best?.day ?? "",
-    rangeLabel: rangeLabel(range)
+    rangeLabel: rangeLabel(range),
   };
 }
 
@@ -91,48 +79,41 @@ type RangePreset = "7d" | "14d" | "30d" | "custom";
 
 export function RangePicker({
   range,
-  onChange
+  onChange,
 }: {
   range: DateRange;
   onChange: (next: DateRange) => void;
 }) {
-  const [activePreset, setActivePreset] = useState<RangePreset>("7d");
+  const [active, setActive] = useState<RangePreset>("7d");
   const [showCustom, setShowCustom] = useState(false);
 
-  function selectPreset(preset: RangePreset) {
-    setActivePreset(preset);
-    if (preset === "7d") {
-      setShowCustom(false);
-      onChange(defaultWeekRange());
-    } else if (preset === "14d") {
-      setShowCustom(false);
-      onChange(last14DaysRange());
-    } else if (preset === "30d") {
-      setShowCustom(false);
-      onChange(last30DaysRange());
-    } else {
-      setShowCustom(true);
-    }
+  function select(preset: RangePreset) {
+    setActive(preset);
+    if (preset === "7d")     { setShowCustom(false); onChange(defaultWeekRange()); }
+    else if (preset === "14d") { setShowCustom(false); onChange(last14DaysRange()); }
+    else if (preset === "30d") { setShowCustom(false); onChange(last30DaysRange()); }
+    else { setShowCustom(true); }
   }
 
   const presets: { key: RangePreset; label: string }[] = [
-    { key: "7d", label: "7 days" },
-    { key: "14d", label: "14 days" },
-    { key: "30d", label: "30 days" },
-    { key: "custom", label: "Custom" }
+    { key: "7d", label: "7d" },
+    { key: "14d", label: "14d" },
+    { key: "30d", label: "30d" },
+    { key: "custom", label: "custom" },
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="flex items-center rounded-lg border border-border bg-surface p-1 gap-0.5">
+    <div className="flex flex-wrap items-center gap-4">
+      <div className="flex items-center gap-0.5 rounded border border-border bg-surface p-0.5">
         {presets.map((p) => (
           <button
             key={p.key}
-            onClick={() => selectPreset(p.key)}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activePreset === p.key
+            onClick={() => select(p.key)}
+            className={`px-3 py-1 rounded-sm text-[11px] font-mono transition-colors ${
+              active === p.key
                 ? "bg-accent-dim text-accent"
-                : "text-muted hover:text-white hover:bg-surface-hover"
-              }`}
+                : "text-muted hover:text-text"
+            }`}
           >
             {p.label}
           </button>
@@ -140,18 +121,17 @@ export function RangePicker({
       </div>
 
       {showCustom && (
-        <div className="flex items-center gap-2 animate-in">
-          <label className="text-sm text-muted">From</label>
+        <div className="flex items-center gap-2">
           <input
             type="date"
-            className="rounded-md bg-surface border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:border-accent transition-colors"
+            className="rounded border border-border bg-surface px-2 py-1 text-[11px] font-mono text-text focus:outline-none focus:border-accent transition-colors"
             value={range.from}
             onChange={(e) => onChange({ ...range, from: e.target.value })}
           />
-          <label className="text-sm text-muted">to</label>
+          <span className="text-xs text-muted font-mono">→</span>
           <input
             type="date"
-            className="rounded-md bg-surface border border-border px-2.5 py-1.5 text-sm focus:outline-none focus:border-accent transition-colors"
+            className="rounded border border-border bg-surface px-2 py-1 text-[11px] font-mono text-text focus:outline-none focus:border-accent transition-colors"
             value={range.to}
             onChange={(e) => onChange({ ...range, to: e.target.value })}
           />
@@ -161,42 +141,20 @@ export function RangePicker({
   );
 }
 
-export function StatCard({
-  label,
-  value,
-  detail,
-  accent = "teal",
-  className = ""
-}: {
-  label: string;
-  value: string;
-  detail?: string;
-  accent?: "teal" | "amber";
-  className?: string;
-}) {
-  const accentColor = accent === "amber" ? "text-amber" : "text-accent";
-
-  return (
-    <div className={`rounded-xl bg-surface border border-border p-4 ${className}`}>
-      <p className="text-xs text-muted uppercase tracking-wide">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold ${accentColor}`}>{value}</p>
-      {detail && <p className="mt-0.5 text-xs text-muted">{detail}</p>}
-    </div>
-  );
-}
-
 export function LoadingSkeleton() {
   return (
-    <div className="space-y-4 animate-pulse">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-xl bg-surface border border-border p-4 h-20" />
+    <div className="space-y-10 animate-pulse">
+      <div className="h-20 w-56 rounded bg-surface" />
+      <div className="grid grid-cols-3 gap-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="rounded-lg bg-surface h-20" />
         ))}
       </div>
-      <div className="rounded-xl bg-surface border border-border h-64" />
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <div className="rounded-xl bg-surface border border-border h-56" />
-        <div className="rounded-xl bg-surface border border-border h-56" />
+      <div className="rounded-lg bg-surface h-28" />
+      <div className="rounded-lg bg-surface h-44" />
+      <div className="grid grid-cols-2 gap-6">
+        <div className="rounded-lg bg-surface h-40" />
+        <div className="rounded-lg bg-surface h-40" />
       </div>
     </div>
   );
