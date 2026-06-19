@@ -2,30 +2,34 @@
   "name": "dashboard",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
+    "dev": "vite dev",
+    "build": "vite build",
+    "start": "node .output/server/index.mjs",
     "db:generate": "prisma generate",
     "db:push": "node scripts/db-push.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@fontsource-variable/space-grotesk": "^5.2.10",
     "@prisma/client": "^6.19.2",
-    "next": "16.1.6",
+    "@tanstack/react-router": "^1.170.16",
+    "@tanstack/react-start": "^1.168.26",
+    "@vercel/og": "^0.11.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/vite": "^4.3.1",
     "@types/node": "^22.19.13",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "@vitejs/plugin-react": "^6.0.2",
     "prisma": "^6.19.2",
     "tailwindcss": "^4.2.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^8.0.16",
+    "vite-tsconfig-paths": "^6.1.1"
   }
 }
